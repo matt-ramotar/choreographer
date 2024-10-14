@@ -2,8 +2,8 @@ package com.uber.choreographer.core.api
 
 import com.uber.choreographer.core.impl.RealChoreographerBuilder
 import com.uber.choreographer.core.impl.RuleEnforcer
-import com.uber.choreographer.dsl.api.RuleSet
-import com.uber.choreographer.dsl.api.RuleSetBuilder
+import com.uber.choreographer.dsl.RuleSet
+import com.uber.choreographer.dsl.RuleSetBuilder
 
 interface ChoreographerBuilder<S : AppState> {
     fun ruleEnforcer(ruleEnforcer: RuleEnforcer<S>): ChoreographerBuilder<S>

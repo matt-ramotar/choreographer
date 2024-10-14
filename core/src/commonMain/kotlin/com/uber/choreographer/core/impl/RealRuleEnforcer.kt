@@ -5,9 +5,9 @@ import com.uber.choreographer.core.api.Bookkeeping
 import com.uber.choreographer.core.api.ChoreographerConfig
 import com.uber.choreographer.core.api.ComponentAllowList
 import com.uber.choreographer.core.api.VisibilityRequest
-import com.uber.choreographer.dsl.api.Action
-import com.uber.choreographer.dsl.api.ComponentSet
-import com.uber.choreographer.dsl.api.RuleSet
+import com.uber.choreographer.dsl.Action
+import com.uber.choreographer.dsl.ComponentSet
+import com.uber.choreographer.dsl.RuleSet
 
 class RealRuleEnforcer<S : AppState>(
     private val ruleSet: RuleSet<S>,

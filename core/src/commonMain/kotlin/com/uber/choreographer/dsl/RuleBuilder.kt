@@ -1,4 +1,4 @@
-package com.uber.choreographer.dsl.api
+package com.uber.choreographer.dsl
 
 import com.uber.choreographer.core.api.AppState
 import com.uber.choreographer.core.api.ComponentType
@@ -7,8 +7,8 @@ class RuleBuilder<S : AppState> {
 
     private var name: String? = null
     private var priority: Int = 0
-    private var conditionsEvaluator: ConditionsEvaluator<S> = ConditionsEvaluator { _ -> true }
-    private var actionCreator: ((Boolean) -> Action)? = null
+    private var conditionsEvaluator: ConditionsEvaluator<S>? = null
+    private var actionCreator: ((EvaluationResult) -> Action)? = null
     private var componentSet: ComponentSet = ComponentSet.Any()
 
     fun named(name: String) {
@@ -16,12 +16,12 @@ class RuleBuilder<S : AppState> {
     }
 
     fun whenever(
-        conditionsEvaluator: (conditions: Conditions<S>) -> Boolean
+        conditionsEvaluator: (conditions: Conditions<S>) -> EvaluationResult
     ) {
         this.conditionsEvaluator = ConditionsEvaluator(conditionsEvaluator)
     }
 
-    fun then(actionCreator: (satisfiedConditions: Boolean) -> Action) {
+    fun then(actionCreator: (evaluationResult: EvaluationResult) -> Action) {
         this.actionCreator = actionCreator
     }
 
@@ -44,7 +44,7 @@ class RuleBuilder<S : AppState> {
     internal fun build(): Rule<S> {
         return Rule(
             name = name ?: error("Name is required."),
-            conditionsEvaluator = conditionsEvaluator,
+            conditionsEvaluator = conditionsEvaluator ?: error("ConditionsEvaluator is required."),
             actionCreator = actionCreator ?: error("ActionCreator is required."),
             priority = priority,
             componentSet = componentSet

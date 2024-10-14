@@ -5,8 +5,8 @@ import com.uber.choreographer.core.api.Choreographer
 import com.uber.choreographer.core.api.ChoreographerBuilder
 import com.uber.choreographer.core.api.ComponentAllowList
 import com.uber.choreographer.core.api.MutableAppState
-import com.uber.choreographer.dsl.api.RuleSet
-import com.uber.choreographer.dsl.api.RuleSetBuilder
+import com.uber.choreographer.dsl.RuleSet
+import com.uber.choreographer.dsl.RuleSetBuilder
 
 class RealChoreographerBuilder<S : AppState> : ChoreographerBuilder<S> {
     private var ruleSet: RuleSet<S>? = null

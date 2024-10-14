@@ -1,4 +1,4 @@
-package com.uber.choreographer.dsl.api
+package com.uber.choreographer.dsl
 
 import com.uber.choreographer.core.api.AppState
 import com.uber.choreographer.core.api.Bookkeeping
