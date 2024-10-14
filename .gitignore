@@ -1,0 +1,5 @@
+.gradle/
+.idea/
+.kotlin/
+*/.DS_Store
+**/*/build/
