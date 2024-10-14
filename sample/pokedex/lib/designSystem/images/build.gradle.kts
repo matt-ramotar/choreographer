@@ -27,7 +27,6 @@ kotlin {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
                 api(libs.kotlinx.datetime)
-                api(project(":redux"))
                 implementation(compose.components.resources)
             }
         }

@@ -19,7 +19,6 @@ rootProject.name = "choreographer"
 
 // Lib
 include(":core")
-include(":redux")
 
 // Samples
 
