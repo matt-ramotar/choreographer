@@ -1,18 +1,19 @@
 package com.uber.choreographer.dsl
 
 
-import com.uber.choreographer.core.api.AppState
+class RuleSetBuilder {
+    private val rules = mutableSetOf<Rule>()
 
-
-class RuleSetBuilder<S : AppState> {
-    private val rules = mutableSetOf<Rule<S>>()
-
-    fun rule(init: RuleBuilder<S>.() -> Unit) {
-        val builder = RuleBuilder<S>().apply(init)
+    fun rule(init: RuleBuilder.() -> Unit) {
+        val builder = RuleBuilder().apply(init)
         rules.add(builder.build())
     }
 
-    internal fun build(): RuleSet<S> = rules
+    fun use(rule: Rule) {
+        rules.add(rule)
+    }
+
+    internal fun build(): RuleSet = RuleSet(rules)
 }
 
 

@@ -1,53 +1,84 @@
 package com.uber.choreographer.dsl
 
 import com.uber.choreographer.core.api.AppState
-import com.uber.choreographer.core.api.ComponentType
+import com.uber.choreographer.core.api.Bookkeeping
+import com.uber.choreographer.core.api.VisibilityRequest
 
-class RuleBuilder<S : AppState> {
+class RuleBuilder {
+    private var name: String = ""
+    private var componentSet: ComponentSet = ComponentSet.Only(included = emptySet()) // Default to applying to none
+    private var dependencies: Dependencies = DependenciesBuilder() // Default to no dependencies
+    private var actions: Actions = Actions { _, _ -> Action.Deny } // Default to denying
+    private var conditions: Conditions = Conditions { _, _, _ -> ConditionsEvaluationResult.AllSatisfied }
 
-    private var name: String? = null
-    private var priority: Int = 0
-    private var conditionsEvaluator: ConditionsEvaluator<S>? = null
-    private var actionCreator: ((EvaluationResult) -> Action)? = null
-    private var componentSet: ComponentSet = ComponentSet.Any()
+    fun name(name: String) = apply { this.name = name }
 
-    fun named(name: String) {
-        this.name = name
+    fun appliesTo(componentSet: ComponentSet) = apply {
+        when (componentSet) {
+            is ComponentSet.Any -> {
+                when (val prevComponentSet = this.componentSet) {
+                    is ComponentSet.Any -> {
+                        val prevExcluded = prevComponentSet.excluded
+                        val nextExcluded = prevExcluded + componentSet.excluded
+                        val nextComponentSet = prevComponentSet.copy(excluded = nextExcluded)
+                        this.componentSet = nextComponentSet
+                    }
+
+                    is ComponentSet.Only -> {
+                        this.componentSet = componentSet
+                    }
+                }
+            }
+
+            is ComponentSet.Only -> {
+                when (val prevComponentSet = this.componentSet) {
+                    is ComponentSet.Any -> {
+                        this.componentSet = componentSet
+                    }
+
+                    is ComponentSet.Only -> {
+                        val prevIncluded = prevComponentSet.included
+                        val nextIncluded = prevIncluded + componentSet.included
+                        val nextComponentSet = prevComponentSet.copy(included = nextIncluded)
+                        this.componentSet = nextComponentSet
+                    }
+                }
+            }
+        }
     }
 
-    fun whenever(
-        conditionsEvaluator: (conditions: Conditions<S>) -> EvaluationResult
-    ) {
-        this.conditionsEvaluator = ConditionsEvaluator(conditionsEvaluator)
+    fun dependsOn(init: DependenciesBuilder.() -> Unit) = apply {
+        dependencies = DependenciesBuilder().apply(init)
     }
 
-    fun then(actionCreator: (evaluationResult: EvaluationResult) -> Action) {
-        this.actionCreator = actionCreator
+    fun dependsOn(dependencies: Dependencies) = apply {
+        this.dependencies = dependencies
     }
 
-    fun forOnly(components: Set<ComponentType>) {
-        this.componentSet = ComponentSet.Only(components)
-    }
+    fun whenConditions(init: (request: VisibilityRequest, appState: AppState, bookkeeping: Bookkeeping) -> ConditionsEvaluationResult) =
+        apply {
+            this.conditions = Conditions { request, appState, bookkeeping ->
+                init(request, appState, bookkeeping)
+            }
+        }
 
-    fun forOnly(component: ComponentType) {
-        this.componentSet = ComponentSet.Only(setOf(component))
-    }
+    fun actions(init: (dependenciesSatisfied: Boolean, conditionsEvaluationResult: ConditionsEvaluationResult) -> Action) =
+        apply {
+            this.actions = Actions { dependenciesSatisfied, conditionsEvaluationResult ->
+                init(
+                    dependenciesSatisfied,
+                    conditionsEvaluationResult
+                )
+            }
+        }
 
-    fun forAnyComponent(exceptFor: Set<ComponentType> = emptySet()) {
-        this.componentSet = ComponentSet.Any(exceptFor)
-    }
-
-    fun priority(priority: Int) {
-        this.priority = priority
-    }
-
-    internal fun build(): Rule<S> {
+    fun build(): Rule {
         return Rule(
-            name = name ?: error("Name is required."),
-            conditionsEvaluator = conditionsEvaluator ?: error("ConditionsEvaluator is required."),
-            actionCreator = actionCreator ?: error("ActionCreator is required."),
-            priority = priority,
-            componentSet = componentSet
+            name = name,
+            appliesTo = this.componentSet,
+            dependencies = dependencies,
+            conditions = conditions,
+            actions = actions,
         )
     }
 }

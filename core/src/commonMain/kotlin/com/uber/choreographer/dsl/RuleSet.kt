@@ -1,3 +1,6 @@
 package com.uber.choreographer.dsl
 
-typealias RuleSet<S> = Set<Rule<S>>
+
+data class RuleSet(
+    val rules: Set<Rule>
+)

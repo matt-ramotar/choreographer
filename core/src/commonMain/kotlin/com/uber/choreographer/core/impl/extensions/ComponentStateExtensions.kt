@@ -1,4 +1,4 @@
-package com.uber.choreographer.core.impl
+package com.uber.choreographer.core.impl.extensions
 
 import com.uber.choreographer.core.api.ComponentState
 import com.uber.choreographer.core.api.ComponentVisibility

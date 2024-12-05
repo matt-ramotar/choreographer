@@ -7,6 +7,8 @@ import com.uber.choreographer.core.api.ComponentVisibility
 import com.uber.choreographer.core.api.DeniedRequestReason
 import com.uber.choreographer.core.api.GrantedRequestReason
 import com.uber.choreographer.core.api.MutableAppState
+import com.uber.choreographer.core.api.RuleEngine
+import com.uber.choreographer.core.api.RuleEngineResult
 import com.uber.choreographer.core.api.SlotType
 import com.uber.choreographer.core.api.VisibilityDecision
 import com.uber.choreographer.core.api.VisibilityRequest
@@ -26,7 +28,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class RealChoreographer<S : MutableAppState>(
     private val mutableAppState: S,
-    private val ruleEnforcer: RuleEnforcer<S>,
+    private val ruleEngine: RuleEngine,
     private val bookkeeper: Bookkeeper,
     coroutineDispatcher: CoroutineDispatcher
 ) : Choreographer {
@@ -103,21 +105,21 @@ class RealChoreographer<S : MutableAppState>(
         val componentInstanceId = componentInstanceIds[request] ?: return
         val responseStream = responseStreams[request] ?: return
         responseStream.emit(VisibilityRequestStatus.UnderReview(componentInstanceId))
-        val ruleEnforcerResponse = ruleEnforcer.isCompliant(request, mutableAppState, bookkeeper.bookkeeping())
+        val ruleResult = ruleEngine.evaluate(request, mutableAppState, bookkeeper.bookkeeping())
 
         if (request.deferrable) {
-            when (ruleEnforcerResponse) {
-                RuleEnforcerResponse.YES -> grantRequest(
+            when (ruleResult) {
+                RuleEngineResult.Granted -> grantRequest(
                     componentInstanceId,
                     request,
                     GrantedRequestReason.RuleSatisfied
                 ) // TODO: Add reasonable GrantedRequestReasons
-                RuleEnforcerResponse.NO -> denyRequest(
+                RuleEngineResult.Denied -> denyRequest(
                     componentInstanceId,
                     request,
                     DeniedRequestReason.RuleNotSatisfied
                 ) // TODO: Add reasonable DeniedRequestReasons
-                RuleEnforcerResponse.PENDING -> {
+                RuleEngineResult.Pending -> {
                     // Deferrable, so can add to waitlist
 
                     val waitlist = prioritizedWaitlists[request.slotType]
@@ -137,16 +139,16 @@ class RealChoreographer<S : MutableAppState>(
             }
 
         } else {
-            when (ruleEnforcerResponse) {
-                RuleEnforcerResponse.YES -> grantRequest(
+            when (ruleResult) {
+                RuleEngineResult.Granted -> grantRequest(
                     componentInstanceId,
                     request,
                     GrantedRequestReason.RuleSatisfied
                 ) // TODO: Add reasonable GrantedRequestReasons
 
                 // Not deferrable, cannot add to waitlist
-                RuleEnforcerResponse.PENDING,
-                RuleEnforcerResponse.NO -> denyRequest(
+                RuleEngineResult.Pending,
+                RuleEngineResult.Denied -> denyRequest(
                     componentInstanceId,
                     request,
                     DeniedRequestReason.RuleNotSatisfied
@@ -199,7 +201,7 @@ class RealChoreographer<S : MutableAppState>(
         )
 
         // Handle bookkeeping
-        bookkeeper.decision(
+        bookkeeper.recordDecision(
             VisibilityDecision(
                 componentInstanceId,
                 request.componentType,
@@ -225,7 +227,7 @@ class RealChoreographer<S : MutableAppState>(
         )
 
         // Handle bookkeeping
-        bookkeeper.decision(
+        bookkeeper.recordDecision(
             VisibilityDecision(
                 componentInstanceId,
                 request.componentType,

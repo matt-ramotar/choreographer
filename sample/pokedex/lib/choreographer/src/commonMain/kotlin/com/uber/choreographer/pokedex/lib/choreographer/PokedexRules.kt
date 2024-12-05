@@ -1,56 +1,44 @@
 package com.uber.choreographer.pokedex.lib.choreographer
 
-import com.uber.choreographer.dsl.EvaluationResult
-import com.uber.choreographer.dsl.RuleSet
-import com.uber.choreographer.dsl.RuleSetBuilder
-import com.uber.choreographer.dsl.rules
+import com.uber.choreographer.dsl.Action
+import com.uber.choreographer.dsl.ComponentSet
+import com.uber.choreographer.dsl.ConditionsEvaluationResult
+import com.uber.choreographer.dsl.rule
+import com.uber.choreographer.pokedex.lib.choreographer.PokedexDependencies.bottomBannerDependencies
+import com.uber.choreographer.pokedex.lib.choreographer.PokedexExtensions.getCurrentPage
+import com.uber.choreographer.pokedex.lib.choreographer.PokedexExtensions.sessionImpressionCount
 
 object PokedexRules {
-    fun ruleSet(): RuleSet<PokedexAppState> = rules {
-        bottomBannerCanShowOncePerSessionIfNotOverlapping()
-    }
+    val bottomBannerVisibilityRule = rule {
+        name("Bottom Banner Visibility Rule")
+        appliesTo(ComponentSet.Only(setOf(PokedexComponentType.Banner.type)))
+        dependsOn(bottomBannerDependencies)
+        whenConditions { request, appState, bookkeeping ->
+            // Is request for bottom banner
+            val isBottomBanner =
+                request.componentType == PokedexComponentType.Banner.type && request.slotType == PokedexSlotType.BottomNav.type
 
+            // Has not shown this session
+            val sessionImpressionCount = bookkeeping.sessionImpressionCount(PokedexComponentType.Banner.type)
+            val hasNotShownThisSession = sessionImpressionCount == 0
 
-    private fun RuleSetBuilder<PokedexAppState>.bottomBannerCanShowOncePerSessionIfNotOverlapping() = rule {
-        named("bottomBannerCanShowOncePerSessionIfNotOverlapping")
-
-        forOnly(PokedexComponentType.Banner.type)
-
-        whenever { conditions ->
-            // Need to check that bottom nav is open
-            val visibleComponentsInSlot = conditions.appState.getVisibleComponentsInSlot(PokedexSlotType.BottomNav.type, null)
-
-            // Need to check that this component type hasn't already shown this session
-            val equivalentRequestsSameSession = conditions.bookkeeping.visibilityDecisions.filter { visibilityDecision ->
-                (visibilityDecision.component == conditions.request.componentType && (conditions.request.slotType == null || (visibilityDecision.slot == conditions.request.slotType)) && (conditions.request.pageType == null || (visibilityDecision.page == conditions.request.pageType)))
-            }
+            // Is home tab
+            val currentPage = appState.getCurrentPage()
+            val requestedPage = request.pageType
+            val isHomePage = currentPage == PokedexPageType.HomeTab && requestedPage == PokedexPageType.HomeTab.type
 
             when {
-                visibleComponentsInSlot.isNotEmpty() && equivalentRequestsSameSession.isEmpty() -> EvaluationResult.SatisfiedSomeConditions
-                visibleComponentsInSlot.isEmpty() && equivalentRequestsSameSession.isEmpty() -> EvaluationResult.SatisfiedAllConditions
-                else -> EvaluationResult.DidNotSatisfyAnyConditions
+                isBottomBanner && hasNotShownThisSession && isHomePage -> ConditionsEvaluationResult.AllSatisfied
+                else -> ConditionsEvaluationResult.NoneSatisfied
             }
         }
-
-        then { result ->
-            when (result) {
-                EvaluationResult.SatisfiedSomeConditions -> {
-                    // Do something
-                    com.uber.choreographer.dsl.Action.Defer
-                }
-
-                EvaluationResult.DidNotSatisfyAnyConditions -> {
-                    // Do something
-                    com.uber.choreographer.dsl.Action.Deny
-                }
-
-                EvaluationResult.SatisfiedAllConditions -> {
-                    // Do something
-                    com.uber.choreographer.dsl.Action.Grant
-                }
+        actions { dependenciesSatisfied, conditionsEvaluationResult ->
+            when {
+                dependenciesSatisfied && conditionsEvaluationResult == ConditionsEvaluationResult.AllSatisfied -> Action.Grant
+                dependenciesSatisfied && conditionsEvaluationResult == ConditionsEvaluationResult.SomeSatisfied -> Action.Defer
+                else -> Action.Deny
             }
         }
-
-        priority(10)
     }
 }
+

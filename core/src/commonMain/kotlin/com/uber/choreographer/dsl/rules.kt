@@ -1,7 +1,18 @@
 package com.uber.choreographer.dsl
 
-import com.uber.choreographer.core.api.AppState
+fun ruleSet(init: MutableSet<Rule>.() -> Unit): RuleSet {
+    val rules = mutableSetOf<Rule>()
+    with(rules) {
+        init()
+    }
 
-fun <S : AppState> rules(init: RuleSetBuilder<S>.() -> Unit): RuleSet<S> {
-    return RuleSetBuilder<S>().apply(init).build()
+    return RuleSet(rules)
 }
+
+fun rules(vararg rules: Rule): RuleSet =
+    RuleSet(rules.toSet())
+
+fun rule(init: RuleBuilder.() -> Unit): Rule {
+    return RuleBuilder().apply(init).build()
+}
+

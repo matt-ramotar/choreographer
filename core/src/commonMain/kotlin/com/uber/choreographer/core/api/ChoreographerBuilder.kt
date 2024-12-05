@@ -1,29 +1,28 @@
 package com.uber.choreographer.core.api
 
 import com.uber.choreographer.core.impl.RealChoreographerBuilder
-import com.uber.choreographer.core.impl.RuleEnforcer
 import com.uber.choreographer.dsl.RuleSet
 import com.uber.choreographer.dsl.RuleSetBuilder
 
-interface ChoreographerBuilder<S : AppState> {
-    fun ruleEnforcer(ruleEnforcer: RuleEnforcer<S>): ChoreographerBuilder<S>
+interface ChoreographerBuilder {
+    fun ruleEngine(ruleEngine: RuleEngine): ChoreographerBuilder
 
-    fun maxTimeDeferred(milliseconds: Long): ChoreographerBuilder<S>
-    fun maxTimePendingReview(milliseconds: Long): ChoreographerBuilder<S>
-    fun maxTimeUnderReview(milliseconds: Long): ChoreographerBuilder<S>
-    fun maxWaitTimeAfterGrantingRequest(milliseconds: Long): ChoreographerBuilder<S>
+    fun maxTimeDeferred(milliseconds: Long): ChoreographerBuilder
+    fun maxTimePendingReview(milliseconds: Long): ChoreographerBuilder
+    fun maxTimeUnderReview(milliseconds: Long): ChoreographerBuilder
+    fun maxWaitTimeAfterGrantingRequest(milliseconds: Long): ChoreographerBuilder
 
-    fun rules(init: RuleSetBuilder<S>.() -> Unit): ChoreographerBuilder<S>
+    fun rules(init: RuleSetBuilder.() -> Unit): ChoreographerBuilder
 
-    fun ruleSet(ruleSet: RuleSet<S>): ChoreographerBuilder<S>
+    fun ruleSet(ruleSet: RuleSet): ChoreographerBuilder
 
-    fun componentAllowList(componentAllowList: ComponentAllowList): ChoreographerBuilder<S>
-    fun mutableAppState(mutableAppState: MutableAppState): ChoreographerBuilder<S>
+    fun componentAllowList(componentAllowList: ComponentAllowList): ChoreographerBuilder
+    fun mutableAppState(mutableAppState: MutableAppState): ChoreographerBuilder
 
     fun build(): Choreographer
 
     companion object {
-        operator fun <S : AppState> invoke(): ChoreographerBuilder<S> {
+        operator fun invoke(): ChoreographerBuilder {
             return RealChoreographerBuilder()
         }
     }
